@@ -2,6 +2,7 @@ import pytorch_lightning as pl
 from torchvision.models import vgg16_bn
 from torch import nn
 from torch.nn import functional as F
+from torch.utils.data import DataLoader
 from pytorch_lightning.loggers import TensorBoardLogger
 import torch
 import torchvision
@@ -18,7 +19,6 @@ class LM(pl.LightningModule):
         self.val_dataset = hydra.utils.instantiate(cfg.datasets.val)
         self.encoder = hydra.utils.instantiate(cfg.encoder)
         self.decoder = hydra.utils.instantiate(cfg.decoder)
-        import ipdb;ipdb.set_trace()
 
     def configure_optimizers(self):
         optimizer = torch.optim.Adam(self.parameters(),

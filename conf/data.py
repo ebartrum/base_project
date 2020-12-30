@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from omegaconf import MISSING
-from typing import List, Any, Optional
+from typing import List, Any, Optional, Callable
+from torchvision import transforms
 
 @dataclass
 class BaseData:
@@ -35,11 +36,11 @@ class DatasetCollection:
 @dataclass
 class ImageDatasetCollection(DatasetCollection):
     train: Dataset = ImageDataset(
-            root="${expt.data.train_root}",
-            img_size="${expt.train.img_size}")
+            root="${expt.data.train_root}", 
+            img_size="${expt.data.img_size}")
     test: Dataset = ImageDataset(
             root="${expt.data.test_root}",
-            img_size="${expt.train.img_size}")
+            img_size="${expt.data.img_size}")
     val: Dataset = ImageDataset(
             root="${expt.data.val_root}",
-            img_size="${expt.train.img_size}")
+            img_size="${expt.data.img_size}")
