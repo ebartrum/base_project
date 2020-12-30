@@ -1,1 +1,1 @@
-This base project should perform dummy training, vaildation, and figures.
+This base project should perform dummy training, validation, figures.
