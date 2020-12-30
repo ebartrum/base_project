@@ -26,7 +26,6 @@ class LM(pl.LightningModule):
         return optimizer
    
     def training_step(self, batch, batch_nb, optimizer_idx=0):
-        import ipdb;ipdb.set_trace()
         loss = hydra.utils.call(self.cfg.training_strategy,
                 batch, batch_nb, optimizer_idx, pl_module=self)
         return loss
