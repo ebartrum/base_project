@@ -2,6 +2,7 @@ import hydra
 from conf.config import Config
 import conf.experiments.experiments
 from omegaconf import OmegaConf
+from os import path
 
 @hydra.main(config_name="config")
 def main(cfg: Config) -> None:
@@ -22,12 +23,14 @@ def main(cfg: Config) -> None:
         monitor='val_loss',
         filepath='logs',
         mode='min')
+    full_checkpoint = path.join(hydra.utils.get_original_cwd(),
+            cfg.expt.submission.checkpoint)
     trainer = pl.Trainer(gpus=cfg.expt.submission.gpus,
             max_epochs=cfg.expt.train.num_epochs,
             logger=logger, checkpoint_callback=checkpoint_callback\
                     if cfg.expt.submission.save_checkpoints else None,
                     callbacks=[FiguresCallback(cfg.expt.figures)],
-            resume_from_checkpoint=cfg.expt.submission.checkpoint,
+            resume_from_checkpoint=full_checkpoint,
             fast_dev_run=cfg.expt.submission.fast_dev_run)    
     trainer.fit(lightning_module)  
 
