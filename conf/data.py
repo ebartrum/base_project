@@ -16,6 +16,7 @@ class ImageDataset(Dataset):
     _target_: str = "core.dataset.ImageDataset"
     root: str = MISSING
     img_size: int = MISSING
+    file_extn: str = MISSING
 
 @dataclass
 class StandardData(BaseData):
@@ -26,6 +27,7 @@ class StandardData(BaseData):
 @dataclass
 class ImageData(StandardData):
     img_size: int = "${expt.train.img_size}"
+    file_extn: str = "jpg"
 
 @dataclass
 class DatasetCollection:
@@ -37,10 +39,13 @@ class DatasetCollection:
 class ImageDatasetCollection(DatasetCollection):
     train: Dataset = ImageDataset(
             root="${expt.data.train_root}", 
-            img_size="${expt.data.img_size}")
+            img_size="${expt.data.img_size}",
+            file_extn="${expt.data.file_extn}")
     test: Dataset = ImageDataset(
             root="${expt.data.test_root}",
-            img_size="${expt.data.img_size}")
+            img_size="${expt.data.img_size}",
+            file_extn="${expt.data.file_extn}")
     val: Dataset = ImageDataset(
             root="${expt.data.val_root}",
-            img_size="${expt.data.img_size}")
+            img_size="${expt.data.img_size}",
+            file_extn="${expt.data.file_extn}")
