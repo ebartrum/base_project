@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 import os
 import numpy as np
+import imageio
 import torch
 
 class Figure(ABC):

@@ -51,19 +51,16 @@ class ResBlk(nn.Module):
         return x / math.sqrt(2)  # unit variance
 
 class StandardEncoder(nn.Module):
-    def __init__(self, dim_in=3, img_size=128):
+    def __init__(self, dim_in=3, img_size=128, latent_dim=1024):
         super(StandardEncoder, self).__init__()
-
-        latent_dim = 1024
-        hidden_dims = [latent_dim//8, latent_dim//4, latent_dim//2]
-
-        self.conv1 = nn.Conv2d(dim_in, hidden_dims[0], kernel_size=5, stride=2, padding=2)
-        self.conv2 = nn.Conv2d(hidden_dims[0], hidden_dims[1], kernel_size=5, stride=2, padding=2)
-        self.conv3 = nn.Conv2d(hidden_dims[1], hidden_dims[2], kernel_size=5, stride=2, padding=2)
-
-        self.bn1 = nn.BatchNorm2d(hidden_dims[0])
-        self.bn2 = nn.BatchNorm2d(hidden_dims[1])
-        self.bn3 = nn.BatchNorm2d(hidden_dims[2])
+        n_conv = int(math.log2(img_size) - 2)
+        hidden_dims = [latent_dim//(2**i) for i in range(1,n_conv+1)[::-1]]
+        self.conv_layers = [nn.Conv2d(dim_in, hidden_dims[0], kernel_size=5, stride=2, padding=2)]
+        for i in range(n_conv-1):
+            self.conv_layers.append(
+                    nn.Conv2d(hidden_dims[i], hidden_dims[i+1],
+                        kernel_size=5, stride=2, padding=2))
+        self.bn_layers = [nn.BatchNorm2d(dim) for dim in hidden_dims]
 
         self.fc1 = nn.Linear(hidden_dims[2]*math.ceil(img_size/8)**2,
                 latent_dim*4)
@@ -73,61 +70,30 @@ class StandardEncoder(nn.Module):
     def forward(self, x):
         batch_size = len(x)
         out = x 
-        out = F.relu(self.bn1(self.conv1(out)), inplace=True)
-        out = F.relu(self.bn2(self.conv2(out)), inplace=True)
-        out = F.relu(self.bn3(self.conv3(out)), inplace=True)
+        for bn, cn in zip(self.bn_layers, self.conv_layers):
+            out = F.relu(bn(cn(out)), inplace=True)
+
         out = out.view(out.size(0), -1)
         out = F.relu(self.fc1(out), inplace=True)
         out = F.relu(self.fc2(out), inplace=True)
         out = F.relu(self.fc3(out), inplace=True)
         return out
 
-# class StandardDecoder(nn.Module):
-#     def __init__(self):
-#         super(StandardDecoder, self).__init__()
-#         latent_dim = 1024
-#         hidden_dims = [latent_dim, latent_dim//2, latent_dim//4, latent_dim//8]
-#         self.fc1 = nn.Linear(hidden_dims[0], hidden_dims[1])
-#         self.fc2 = nn.Linear(hidden_dims[1], hidden_dims[2])
-
-#     def forward(self, x):
-#         batch_size = len(x)
-#         x = F.relu(self.fc1(x), inplace=True)
-#         x = F.relu(self.fc2(x), inplace=True)
-
-#         return out
-
 class StandardDecoder(nn.Module):
-    def __init__(self, dim_in=1024, dim_out=3):
+    def __init__(self, dim_in=1024, dim_out=3, img_size=128):
         super(StandardDecoder, self).__init__()
-        self.blk1 = ResBlk(dim_in, dim_in//2, normalize=True, upsample=True,
-                actv=nn.ReLU())
-        self.blk2 = ResBlk(dim_in//2, dim_in//4, normalize=True, upsample=True,
-                actv=nn.ReLU())
-        self.blk3 = ResBlk(dim_in//4, dim_in//8, normalize=True, upsample=True,
-                actv=nn.ReLU())
-        self.blk4 = ResBlk(dim_in//8, dim_in//16, normalize=True, upsample=True,
-                actv=nn.ReLU())
-        self.blk5 = ResBlk(dim_in//16, dim_in//32, normalize=True, upsample=True,
-                actv=nn.ReLU())
-        self.blk6 = ResBlk(dim_in//32, dim_in//64, normalize=True, upsample=True,
-                actv=nn.ReLU())
-        self.blk7 = ResBlk(dim_in//64, dim_in//128, normalize=True, upsample=True,
-                actv=nn.ReLU())
-
-        dim_hidden = [dim_in//2, dim_in//4]
-        self.conv1x1 = nn.Conv2d(dim_in//128, 3,
+        num_blks = int(math.log2(img_size))
+        self.blks = [ResBlk(dim_in, dim_in//2, normalize=True, upsample=True,
+                actv=nn.ReLU())]
+        for i in range(1,num_blks):
+            self.blks.append(ResBlk(dim_in//(2**i), dim_in//(2**(i+1)), normalize=True, upsample=True,
+                    actv=nn.ReLU()))
+        self.conv1x1 = nn.Conv2d(dim_in//img_size, 3,
                 1, 1, 0)
 
     def forward(self, x):
         out = x.unsqueeze(-1).unsqueeze(-1)
-        out = self.blk1(out)
-        out = self.blk2(out)
-        out = self.blk3(out)
-        out = self.blk4(out)
-        out = self.blk5(out)
-        out = self.blk6(out)
-        out = self.blk7(out)
-
+        for blk in self.blks:
+            out = blk(out)
         out = self.conv1x1(out)
         return out

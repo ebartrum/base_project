@@ -3,11 +3,11 @@ from typing import List, Any
 
 @dataclass
 class Encoder:
-    pass
+    img_size: int = "${expt.train.img_size}"
 
 @dataclass
 class Decoder:
-    pass
+    img_size: int = "${expt.train.img_size}"
 
 @dataclass
 class StandardEncoder(Encoder):
