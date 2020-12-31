@@ -1,7 +1,6 @@
 from dataclasses import dataclass
 from omegaconf import MISSING
 from typing import List, Any, Optional, Callable
-from torchvision import transforms
 
 @dataclass
 class BaseData:
