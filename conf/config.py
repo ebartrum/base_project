@@ -19,6 +19,7 @@ class Submission:
     gpus: int = 1
     save_checkpoints: bool = True
     checkpoint: Optional[str] = None
+    resume_expt: Optional[str] = None
     fast_dev_run: bool = False
 
 @dataclass
