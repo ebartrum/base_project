@@ -27,7 +27,7 @@ class StandardData(BaseData):
 @dataclass
 class ImageData(StandardData):
     img_size: int = "${expt.train.img_size}"
-    file_extn: str = "jpg"
+    file_extn: str = MISSING
 
 @dataclass
 class DatasetCollection:
