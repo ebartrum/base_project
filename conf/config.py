@@ -8,7 +8,7 @@ from hydra.core.config_store import ConfigStore
 from conf.training_strategy import TrainingStrategy, StandardTrainingStrategy
 from conf.validation_strategy import ValidationStrategy, StandardValidationStrategy
 from conf.data import BaseData, StandardData, DatasetCollection
-from conf.models import Encoder, Decoder, StandardEncoder, StandardDecoder
+from conf.models import Encoder, Decoder, StandardEncoder, StandardDecoder, VGGEncoder
 from conf import figure
 
 cs = ConfigStore.instance()
@@ -78,6 +78,7 @@ class BaseExperiment:
     validation_strategy: ValidationStrategy = StandardValidationStrategy()
     encoder: Encoder = MISSING
     decoder: Decoder = MISSING
+    latent_dim: int = 1024
 
 defaults = [
     {"expt": MISSING},
@@ -97,4 +98,5 @@ cs.store(name="config", node=Config)
 cs.store(group="expt.slurm", name="small", node=SmallSlurm)
 cs.store(group="expt.slurm", name="devel", node=DevelSlurm)
 cs.store(group="expt.encoder", name="standard", node=StandardEncoder)
+cs.store(group="expt.encoder", name="vgg", node=VGGEncoder)
 cs.store(group="expt.decoder", name="standard", node=StandardDecoder)

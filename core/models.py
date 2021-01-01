@@ -1,6 +1,7 @@
 from torch import nn
 import torch.nn.functional as F
 import math
+import torchvision
 
 class ResBlk(nn.Module):
     def __init__(self, dim_in, dim_out, actv=nn.LeakyReLU(0.2),
@@ -77,6 +78,15 @@ class StandardEncoder(nn.Module):
         out = F.relu(self.fc1(out), inplace=True)
         out = F.relu(self.fc2(out), inplace=True)
         out = F.relu(self.fc3(out), inplace=True)
+        return out
+
+class VGGEncoder(nn.Module):
+    def __init__(self, dim_in=3, img_size=128, dim_out=1000):
+        super(VGGEncoder, self).__init__()
+        self.vgg = torchvision.models.vgg16()
+
+    def forward(self, x):
+        out = self.vgg(x) 
         return out
 
 class StandardDecoder(nn.Module):
