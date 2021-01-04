@@ -30,21 +30,10 @@ class LM(pl.LightningModule):
                 batch, batch_nb, optimizer_idx, pl_module=self)
         return loss
 
-    def forward(self, view, novel_pose, novel_distance):
-        vertices, faces, pose_hat, distance_hat =\
-                self.predict_pose_shape(view['img'])
-        lifting_pose, lifting_distance = pose_hat, distance_hat if self.cfg.details.predict_pose\
-                else view['pose']
-        geometry = self.calc_geometric(vertices, faces,
-                lifting_pose, lifting_distance)
-        background = self.bg_model(view['img'])
-        neural_tex = self.compute_nt(view['img'], lifting_pose, lifting_distance,
-                vertices, faces, geometry)
-        novel_geometry = self.calc_geometric(vertices, faces, novel_pose,
-                novel_distance)
-        novel_recon = self.project_and_decode(neural_tex, vertices, faces,
-                novel_pose, novel_distance, novel_geometry, bg=background)
-        return novel_recon
+    def forward(self, img):
+        encoding = self.encoder(img)
+        recon = self.decoder(encoding)
+        return recon
 
     def train_dataloader(self):
         return DataLoader(self.train_dataset,
