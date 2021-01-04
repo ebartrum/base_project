@@ -84,8 +84,6 @@ defaults = [
     {"expt": MISSING},
     {"hydra/launcher": "submitit_slurm_sing"},
     {"hydra/sweep": "custom_sweep"},
-    {"expt.encoder": "standard"},
-    {"expt.decoder": "standard"},
     {"expt.slurm": "small"}
 ]
 
