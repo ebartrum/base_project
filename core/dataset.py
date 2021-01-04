@@ -16,13 +16,13 @@ class ImageDataset(Dataset):
         
         super(ImageDataset, self).__init__()
         self.root = os.path.expanduser(root)
-        self.obj_ids = os.listdir(self.root)
+        self.imgs = os.listdir(self.root)
         self.transform = transform
         self.img_size = img_size
         self.file_extn = file_extn
         
     def __len__(self):
-        return len(self.obj_ids)
+        return len(self.imgs)
 
     def pil_loader(self, path, img_size, mode='RGBA'):
         with open(path, 'rb') as f:
@@ -32,15 +32,9 @@ class ImageDataset(Dataset):
             return img.convert(mode)
 
     def __getitem__(self, index):
-        obj = self.obj_ids[index]
-        obj_path = path.join(self.root, obj)
-        total_views = sum(map(lambda x: self.file_extn in x,
-            os.listdir(obj_path)))
-
-        view_index = random.randint(0,total_views-1)
+        img_path = path.join(self.root, self.imgs[index])
         rgba = self.pil_loader(
-                path.join(self.root, obj, "{}.{}".format(view_index,
-                    self.file_extn)),
+                path.join(self.root, self.imgs[index]),
                 img_size=self.img_size)
 
         if self.transform is not None:

@@ -54,17 +54,16 @@ class ResBlk(nn.Module):
 class StandardEncoder(nn.Module):
     def __init__(self, dim_in=3, img_size=128, dim_out=1024):
         super(StandardEncoder, self).__init__()
-        n_conv = int(math.log2(img_size) - 2)
+        n_conv = int(math.log2(img_size) - 2) #Result feature layer is 4,4
         hidden_dims = [dim_out//(2**i) for i in range(1,n_conv+1)[::-1]]
-        self.conv_layers = [nn.Conv2d(dim_in, hidden_dims[0], kernel_size=5, stride=2, padding=2)]
+        self.conv_layers = nn.ModuleList([nn.Conv2d(dim_in, hidden_dims[0], kernel_size=5, stride=2, padding=2)])
         for i in range(n_conv-1):
             self.conv_layers.append(
                     nn.Conv2d(hidden_dims[i], hidden_dims[i+1],
                         kernel_size=5, stride=2, padding=2))
-        self.bn_layers = [nn.BatchNorm2d(dim) for dim in hidden_dims]
+        self.bn_layers = nn.ModuleList([nn.BatchNorm2d(dim) for dim in hidden_dims])
 
-        self.fc1 = nn.Linear(hidden_dims[2]*math.ceil(img_size/8)**2,
-                dim_out*4)
+        self.fc1 = nn.Linear(hidden_dims[-1]*16, dim_out*4)
         self.fc2 = nn.Linear(dim_out*4, dim_out*2)
         self.fc3 = nn.Linear(dim_out*2, dim_out)
 
@@ -93,8 +92,8 @@ class StandardDecoder(nn.Module):
     def __init__(self, dim_in=1024, dim_out=3, img_size=128):
         super(StandardDecoder, self).__init__()
         num_blks = int(math.log2(img_size))
-        self.blks = [ResBlk(dim_in, dim_in//2, normalize=True, upsample=True,
-                actv=nn.ReLU())]
+        self.blks = nn.ModuleList([ResBlk(dim_in, dim_in//2, normalize=True, upsample=True,
+                actv=nn.ReLU())])
         for i in range(1,num_blks):
             self.blks.append(ResBlk(dim_in//(2**i), dim_in//(2**(i+1)), normalize=True, upsample=True,
                     actv=nn.ReLU()))
