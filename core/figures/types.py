@@ -14,6 +14,7 @@ class Figure(ABC):
                f"{self.__class__.__name__}.png"
        if not os.path.exists(self.save_dir):
            os.makedirs(self.save_dir)
+       self.dataset = hydra.utils.instantiate(cfg.datasets.val)
 
     @abstractmethod
     def draw(self, pl_module):
@@ -41,24 +42,41 @@ class RainbowSquare(Figure):
         fig_array = np.random.random((512,512,3))
         return fig_array
 
-class ReconGrid(Figure):
-    def __init__(self, cfg, num_imgs):
-        super(ReconGrid, self).__init__(cfg)
-        self.dataset = hydra.utils.instantiate(cfg.datasets.val)
-        self.num_imgs = num_imgs
+class Grid(Figure):
+    def __init__(self, cfg, ncol):
+        super(Grid, self).__init__(cfg)
+        self.ncol = ncol
         self.dataloader = DataLoader(self.dataset,
-                batch_size=self.num_imgs,shuffle=False)
+                batch_size=self.ncol,shuffle=False)
         self.input_imgs = self.dataloader.collate_fn(
-                [self.dataset[i] for i in range(self.num_imgs)])
+               [self.dataset[i] for i in range(self.ncol)])
 
     @torch.no_grad()
     def draw(self, pl_module):
-        img = self.input_imgs.to(pl_module.device)
-        recon = pl_module.forward(img)
         grid = torchvision.utils.make_grid(torch.cat(
-            [img,recon],dim=0),
-            nrow=self.num_imgs)
+            list(self.create_rows(pl_module)),dim=0),
+            nrow=self.ncol)
         grid = grid.permute(1,2,0)
         grid = torch.clamp(grid, 0, 1)
         fig_array = grid.detach().cpu().numpy()
         return fig_array
+
+class ReconGrid(Grid):
+    def __init__(self, cfg, ncol):
+        super(ReconGrid, self).__init__(cfg, ncol)
+
+    @torch.no_grad()
+    def create_rows(self, pl_module):
+        img = self.input_imgs.to(pl_module.device)
+        recon = pl_module.forward(img)
+        return img, recon
+
+class InputReconInputGrid(Grid):
+    def __init__(self, cfg, ncol):
+        super(InputReconInputGrid, self).__init__(cfg, ncol)
+
+    @torch.no_grad()
+    def create_rows(self, pl_module):
+        img = self.input_imgs.to(pl_module.device)
+        recon = pl_module.forward(img)
+        return img, recon, img

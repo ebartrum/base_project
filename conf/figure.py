@@ -26,5 +26,10 @@ class RainbowSquare(Base):
 
 @dataclass
 class ReconGrid(Base):
-    num_imgs: int = 5
+    ncol: int = 5
     _target_: str = "core.figures.types.ReconGrid"
+
+@dataclass
+class InputReconInputGrid(Base):
+    ncol: int = 5
+    _target_: str = "core.figures.types.InputReconInputGrid"
