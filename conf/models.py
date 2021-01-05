@@ -22,3 +22,7 @@ class StandardDecoder(Decoder):
 @dataclass
 class VGGEncoder(Encoder):
     _target_: str = "core.models.VGGEncoder"
+
+@dataclass
+class SirenDecoder(Decoder):
+    _target_: str = "core.models.SirenDecoder"
