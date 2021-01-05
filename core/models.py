@@ -52,21 +52,15 @@ class ResBlk(nn.Module):
         x = self._shortcut(x) + self._residual(x)
         return x / math.sqrt(2)  # unit variance
 
-
 class SirenBlk(nn.Module):
-    def __init__(self, dim_in, dim_out, style_dim,
-                 normalize=False, downsample=False, upsample=False):
+    def __init__(self, dim_in, dim_out, style_dim):
         super().__init__()
-        self.downsample = downsample
-        self.upsample = upsample
         self.learned_sc = dim_in != dim_out
         self._build_weights(dim_in, dim_out, style_dim)
 
     def _build_weights(self, dim_in, dim_out, style_dim):
-        self.conv1 = nn.Conv2d(dim_in, dim_in, 3, 1, 1)
-        self.conv2 = nn.Conv2d(dim_in, dim_out, 3, 1, 1)
-        self.norm1 = nn.InstanceNorm2d(dim_in, affine=False)
-        self.norm2 = nn.InstanceNorm2d(dim_in, affine=False)
+        self.conv1 = nn.Conv2d(dim_in, dim_in, 1, 1, 0)
+        self.conv2 = nn.Conv2d(dim_in, dim_out, 1, 1, 0)
         self.gamma1_layer = nn.Linear(style_dim, dim_in)
         self.gamma2_layer = nn.Linear(style_dim, dim_in)
         self.beta1_layer = nn.Linear(style_dim, dim_in)
@@ -75,12 +69,8 @@ class SirenBlk(nn.Module):
             self.conv1x1 = nn.Conv2d(dim_in, dim_out, 1, 1, 0, bias=False)
 
     def _shortcut(self, x):
-        if self.upsample:
-            x = F.interpolate(x, scale_factor=2, mode='nearest')
         if self.learned_sc:
             x = self.conv1x1(x)
-        if self.downsample:
-            x = F.avg_pool2d(x, 2)
         return x
 
     def _affine1(self, style):
@@ -93,17 +83,21 @@ class SirenBlk(nn.Module):
         beta = self.beta2_layer(style).unsqueeze(-1).unsqueeze(-1)
         return gamma, beta
 
+    def _pixel_norm(self, x, eps=1e-5):
+        mu = x.mean(dim=1, keepdims=True)
+        x = x - mu
+        var = (x**2).mean(dim=1, keepdims=True)
+        sigma = (var + eps)**0.5
+        x = x / sigma
+        return x
+
     def _residual(self, x, style):
-        x = self.norm1(x)
+        x = self._pixel_norm(x)
         gamma1, beta1 = self._affine1(style)
         x = gamma1*x + beta1
         x = torch.sin(x)
-        if self.upsample:
-            x = F.interpolate(x, scale_factor=2, mode='nearest')
         x = self.conv1(x)
-        if self.downsample:
-            x = F.avg_pool2d(x, 2)
-        x = self.norm2(x)
+        x = self._pixel_norm(x)
         gamma2, beta2 = self._affine2(style)
         x = gamma2*x + beta2
         x = torch.sin(x)
@@ -172,25 +166,25 @@ class StandardDecoder(nn.Module):
 
 class SirenDecoder(nn.Module):
     def __init__(self, dim_in=1024, dim_out=3, img_size=128,
-            initial_channels=1024):
+            channel_max=1024, num_blks=5):
         super(SirenDecoder, self).__init__()
-        num_blks = int(math.log2(img_size))
-        self.initial_channels = initial_channels
-        self.blks = nn.ModuleList([SirenBlk(initial_channels,
-            initial_channels//2, style_dim=dim_in, upsample=True)])
-        for i in range(1,num_blks):
-            self.blks.append(SirenBlk(initial_channels//(2**i),
-                initial_channels//(2**(i+1)),
-                style_dim=dim_in, upsample=True))
-        self.conv1x1 = nn.Conv2d(initial_channels//img_size, 3,
+        feature_channels = [2, 256, 512, 1024, 512, 256]
+        self.blks = nn.ModuleList()
+        for i in range(num_blks):
+            self.blks.append(SirenBlk(feature_channels[i],
+                feature_channels[i+1], style_dim=dim_in))
+        self.output_conv = nn.Conv2d(feature_channels[-1], 3,
                 1, 1, 0)
-        self.learned_param = nn.Parameter(torch.rand(initial_channels, 1, 1))
+        self.coords = torch.stack(torch.meshgrid(
+            torch.arange(img_size),
+            torch.arange(img_size)
+            ))/float(img_size)
 
     def forward(self, encoding):
         batch_size = len(encoding)
         style = encoding
-        out = torch.stack(batch_size*[self.learned_param])
+        out = torch.stack(batch_size*[self.coords]).to(encoding.device)
         for blk in self.blks:
             out = blk(out, style)
-        out = self.conv1x1(out)
+        out = self.output_conv(out)
         return out
