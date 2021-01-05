@@ -175,7 +175,9 @@ class SirenDecoder(nn.Module):
     def __init__(self, dim_in=1024, dim_out=3, img_size=128,
             channel_max=1024, num_blks=5):
         super(SirenDecoder, self).__init__()
-        feature_channels = [2, 256, 512, 1024, 512, 256]
+        feature_channels = [2] + [channel_max * 2**(i - (num_blks - num_blks//2))\
+                for i in list(range(num_blks//2)) +\
+                list(range(num_blks - num_blks//2, 0, -1))]
         self.blks = nn.ModuleList()
         for i in range(num_blks):
             self.blks.append(SirenBlk(feature_channels[i],
