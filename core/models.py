@@ -68,9 +68,9 @@ class SirenBlk(nn.Module):
         self.norm1 = nn.InstanceNorm2d(dim_in, affine=False)
         self.norm2 = nn.InstanceNorm2d(dim_in, affine=False)
         self.gamma1_layer = nn.Linear(style_dim, dim_in)
-        self.gamma2_layer = nn.Linear(style_dim, dim_out)
+        self.gamma2_layer = nn.Linear(style_dim, dim_in)
         self.beta1_layer = nn.Linear(style_dim, dim_in)
-        self.beta2_layer = nn.Linear(style_dim, dim_out)
+        self.beta2_layer = nn.Linear(style_dim, dim_in)
         if self.learned_sc:
             self.conv1x1 = nn.Conv2d(dim_in, dim_out, 1, 1, 0, bias=False)
 
@@ -84,13 +84,13 @@ class SirenBlk(nn.Module):
         return x
 
     def _affine1(self, style):
-        gamma = self.gamma1_layer(style)
-        beta = self.beta1_layer(style)
+        gamma = self.gamma1_layer(style).unsqueeze(-1).unsqueeze(-1)
+        beta = self.beta1_layer(style).unsqueeze(-1).unsqueeze(-1)
         return gamma, beta
 
     def _affine2(self, style):
-        gamma = self.gamma2_layer(style)
-        beta = self.beta2_layer(style)
+        gamma = self.gamma2_layer(style).unsqueeze(-1).unsqueeze(-1)
+        beta = self.beta2_layer(style).unsqueeze(-1).unsqueeze(-1)
         return gamma, beta
 
     def _residual(self, x, style):
