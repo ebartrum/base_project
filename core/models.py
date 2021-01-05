@@ -55,7 +55,6 @@ class ResBlk(nn.Module):
 class SirenBlk(nn.Module):
     def __init__(self, dim_in, dim_out, style_dim):
         super().__init__()
-        self.learned_sc = dim_in != dim_out
         self._build_weights(dim_in, dim_out, style_dim)
 
     def _build_weights(self, dim_in, dim_out, style_dim):
@@ -65,13 +64,21 @@ class SirenBlk(nn.Module):
         self.gamma2_layer = nn.Linear(style_dim, dim_in)
         self.beta1_layer = nn.Linear(style_dim, dim_in)
         self.beta2_layer = nn.Linear(style_dim, dim_in)
-        if self.learned_sc:
-            self.conv1x1 = nn.Conv2d(dim_in, dim_out, 1, 1, 0, bias=False)
+        self.conv1x1 = nn.Conv2d(dim_in, dim_out-2, 1, 1, 0, bias=False)
 
     def _shortcut(self, x):
-        if self.learned_sc:
-            x = self.conv1x1(x)
+        x = self.conv1x1(x)
+        coords = self._make_coords(img_size=x.shape[2],
+                batch_size=len(x), device=x.device)
+        x = torch.cat((x, coords), dim=1)
         return x
+
+    def _make_coords(self, img_size, batch_size, device):
+        coords = torch.stack(torch.meshgrid(
+            torch.arange(img_size),
+            torch.arange(img_size)
+            ))/float(img_size)
+        return torch.stack(batch_size*[coords]).to(device)
 
     def _affine1(self, style):
         gamma = self.gamma1_layer(style).unsqueeze(-1).unsqueeze(-1)
